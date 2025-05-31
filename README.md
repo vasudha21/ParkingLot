@@ -5,6 +5,56 @@ A robust parking lot management system that handles different types of vehicles,
 
 ## System Architecture
 
+### Component-Level Design Pattern Usage
+```mermaid
+graph TB
+    subgraph Singleton_Pattern
+        PL[ParkingLot<br>Singleton]
+        VMF[VehicleTypeManagerFactory<br>Singleton]
+        TG[TicketGenerator<br>Singleton]
+    end
+
+    subgraph State_Pattern
+        PS[ParkingSpot]
+        PS --> PSI[ParkingSpotState<br>Interface]
+        PSI --> AS[AvailableState]
+        PSI --> OS[OccupiedState]
+        PSI --> RS[ReservedState]
+        PSI --> MS[MaintenanceState]
+    end
+
+    subgraph Factory_Pattern
+        VMF --> VPMI[VehicleParkingManager<br>Interface]
+        VPMI --> TWM[TwoWheelerManager]
+        VPMI --> FWM[FourWheelerManager]
+        VPMI --> HWM[HeavyWheelerManager]
+    end
+
+    subgraph Builder_Pattern
+        T[Ticket]
+        T --> TB[TicketBuilder]
+        TB --> |builds| T
+    end
+
+    %% Component Relationships
+    PL --> PS
+    PL --> VMF
+    PL --> TG
+    TG --> T
+    VMF --> VPMI
+
+    %% Design Pattern Legend
+    classDef singleton fill:#f9f,stroke:#333,stroke-width:2px
+    classDef state fill:#bbf,stroke:#333,stroke-width:2px
+    classDef factory fill:#bfb,stroke:#333,stroke-width:2px
+    classDef builder fill:#fbb,stroke:#333,stroke-width:2px
+
+    class PL,VMF,TG singleton
+    class PS,PSI,AS,OS,RS,MS state
+    class VMF,VPMI,TWM,FWM,HWM factory
+    class T,TB builder
+```
+
 ### Class Diagram
 ```mermaid
 classDiagram
