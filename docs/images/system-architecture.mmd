@@ -1,0 +1,50 @@
+graph TD
+    A[Client<br>Web/Mobile] -->|HTTP/HTTPS| B[API Gateway<br>Auth, Rate-Limit]
+    
+    B -->|Routes| C[FindParkingSpotAPI]
+    B -->|Routes| D[GetTicketAPI]
+    B -->|Routes| E[PayParkingFeesAPI]
+    B -->|Routes| F[VacateParkingSpotAPI]
+    
+    C -->|Uses| G[ParkingSpotFinder<br>Strategy Pattern]
+    G -->|Uses| H[VehicleParkingManager<br>Interface]
+    G -->|Uses| I[ParkingSpotSelector<br>Strategy Pattern]
+    
+    D -->|Uses| J[TicketGenerator<br>Single Responsibility]
+    J -->|Creates| K[Ticket<br>Data Model]
+    
+    E -->|Uses| L[ParkingFeeProcessor<br>Single Responsibility]
+    L -->|Processes| M[PaymentProcessor<br>Interface]
+    
+    F -->|Uses| N[ParkingSpotVacator<br>Single Responsibility]
+    
+    subgraph Vehicle_Management
+        H -->|Implements| O[TwoWheelerManager<br>Strategy Pattern]
+        H -->|Implements| P[FourWheelerManager<br>Strategy Pattern]
+        H -->|Implements| Q[HeavyWheelerManager<br>Strategy Pattern]
+    end
+    
+    subgraph Spot_Selection
+        I -->|Implements| R[NearestSelector<br>Strategy Pattern]
+        I -->|Implements| S[RandomSpotSelector<br>Strategy Pattern]
+    end
+    
+    subgraph Data_Models
+        K -->|Contains| T[Vehicle<br>Data Model]
+        K -->|Contains| U[ParkingSpot<br>Data Model]
+    end
+    
+    subgraph Factory_Components
+        V[VehicleTypeManagerFactory<br>Factory Pattern] -->|Creates| H
+        W[SpotSelectorFactory<br>Factory Pattern] -->|Creates| I
+    end
+
+    classDef strategy fill:#f9f,stroke:#333,stroke-width:2px
+    classDef factory fill:#bbf,stroke:#333,stroke-width:2px
+    classDef srp fill:#bfb,stroke:#333,stroke-width:2px
+    classDef interface fill:#fbb,stroke:#333,stroke-width:2px
+
+    class G,I,O,P,Q,R,S strategy
+    class V,W factory
+    class J,L,N srp
+    class H,M interface 
