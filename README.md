@@ -1,132 +1,355 @@
 # Parking Lot System
 
 ## Overview
-This is a parking lot management system that handles different types of vehicles, parking spots, and payment processing. The system is designed with extensibility and maintainability in mind, following SOLID principles and various design patterns.
+A robust parking lot management system that handles different types of vehicles, parking spots, and payment processing. The system is designed with scalability, maintainability, and extensibility in mind.
 
 ## System Architecture
 
+### Class Diagram
 ```mermaid
-graph TD
-    A[Client<br>Web/Mobile] -->|HTTP/HTTPS| B[API Gateway<br>Auth, Rate-Limit]
-    
-    B -->|Routes| C[FindParkingSpotAPI]
-    B -->|Routes| D[GetTicketAPI]
-    B -->|Routes| E[PayParkingFeesAPI]
-    B -->|Routes| F[VacateParkingSpotAPI]
-    
-    C -->|Uses| G[ParkingSpotFinder<br>Strategy Pattern]
-    G -->|Uses| H[VehicleParkingManager<br>Interface]
-    G -->|Uses| I[ParkingSpotSelector<br>Strategy Pattern]
-    
-    D -->|Uses| J[TicketGenerator<br>Single Responsibility]
-    J -->|Creates| K[Ticket<br>Data Model]
-    
-    E -->|Uses| L[ParkingFeeProcessor<br>Single Responsibility]
-    L -->|Processes| M[PaymentProcessor<br>Interface]
-    
-    F -->|Uses| N[ParkingSpotVacator<br>Single Responsibility]
-    
-    subgraph Vehicle_Management
-        H -->|Implements| O[TwoWheelerManager<br>Strategy Pattern]
-        H -->|Implements| P[FourWheelerManager<br>Strategy Pattern]
-        H -->|Implements| Q[HeavyWheelerManager<br>Strategy Pattern]
-    end
-    
-    subgraph Spot_Selection
-        I -->|Implements| R[NearestSelector<br>Strategy Pattern]
-        I -->|Implements| S[RandomSpotSelector<br>Strategy Pattern]
-    end
-    
-    subgraph Data_Models
-        K -->|Contains| T[Vehicle<br>Data Model]
-        K -->|Contains| U[ParkingSpot<br>Data Model]
-    end
-    
-    subgraph Factory_Components
-        V[VehicleTypeManagerFactory<br>Factory Pattern] -->|Creates| H
-        W[SpotSelectorFactory<br>Factory Pattern] -->|Creates| I
-    end
+classDiagram
+    %% Core Classes
+    class ParkingLot {
+        -ParkingLot instance
+        -ReentrantLock lock
+        -List<ParkingSpot> parkingSpots
+        -VehicleTypeManagerFactory vehicleTypeManagerFactory
+        +getInstance() ParkingLot
+        +getAvailableSpots(VehicleType) List<ParkingSpot>
+        +parkVehicle(Vehicle, ParkingSpot) boolean
+        +vacateSpot(ParkingSpot) boolean
+        +reserveSpot(ParkingSpot) boolean
+        +markSpotForMaintenance(ParkingSpot) boolean
+    }
 
-    classDef strategy fill:#f9f,stroke:#333,stroke-width:2px
-    classDef factory fill:#bbf,stroke:#333,stroke-width:2px
-    classDef srp fill:#bfb,stroke:#333,stroke-width:2px
-    classDef interface fill:#fbb,stroke:#333,stroke-width:2px
+    class ParkingSpot {
+        -String floorNumber
+        -VehicleType vehicleType
+        -String name
+        -ParkingSpotState state
+        +isFree() boolean
+        +park() void
+        +vacate() void
+        +reserve() void
+        +markForMaintenance() void
+    }
 
-    class G,I,O,P,Q,R,S strategy
-    class V,W factory
-    class J,L,N srp
-    class H,M interface
+    class Ticket {
+        -String refNum
+        -Vehicle vehicle
+        -ParkingSpot parkingSpot
+        -LocalDateTime entryTime
+        -LocalDateTime exitTime
+        -double amount
+        -PaymentStatus paymentStatus
+        +getRefNum() String
+        +getVehicle() Vehicle
+        +getParkingSpot() ParkingSpot
+        +getEntryTime() LocalDateTime
+        +getExitTime() LocalDateTime
+        +getAmount() double
+        +getPaymentStatus() PaymentStatus
+    }
+
+    class Vehicle {
+        <<interface>>
+        +getVehicleType() VehicleType
+        +getLicensePlate() String
+    }
+
+    %% Enums
+    class VehicleType {
+        <<enum>>
+        TWO_WHEELER
+        FOUR_WHEELER
+        HEAVY_VEHICLE
+    }
+
+    class PaymentStatus {
+        <<enum>>
+        PENDING
+        PROCESSING
+        COMPLETED
+        FAILED
+    }
+
+    %% State Pattern
+    class ParkingSpotState {
+        <<interface>>
+        +isFree() boolean
+        +park() ParkingSpotState
+        +vacate() ParkingSpotState
+        +reserve() ParkingSpotState
+        +markForMaintenance() ParkingSpotState
+    }
+
+    class AvailableState {
+        +isFree() boolean
+        +park() ParkingSpotState
+        +vacate() ParkingSpotState
+        +reserve() ParkingSpotState
+        +markForMaintenance() ParkingSpotState
+    }
+
+    class OccupiedState {
+        +isFree() boolean
+        +park() ParkingSpotState
+        +vacate() ParkingSpotState
+        +reserve() ParkingSpotState
+        +markForMaintenance() ParkingSpotState
+    }
+
+    class ReservedState {
+        +isFree() boolean
+        +park() ParkingSpotState
+        +vacate() ParkingSpotState
+        +reserve() ParkingSpotState
+        +markForMaintenance() ParkingSpotState
+    }
+
+    class MaintenanceState {
+        +isFree() boolean
+        +park() ParkingSpotState
+        +vacate() ParkingSpotState
+        +reserve() ParkingSpotState
+        +markForMaintenance() ParkingSpotState
+    }
+
+    %% Factory Pattern
+    class VehicleTypeManagerFactory {
+        -VehicleTypeManagerFactory instance
+        -Object lock
+        +getInstance() VehicleTypeManagerFactory
+        +getVehicleParkingManager(VehicleType) VehicleParkingManager
+    }
+
+    class VehicleParkingManager {
+        <<interface>>
+        +getParkingSpots() List<ParkingSpot>
+    }
+
+    class TwoWheelerManager {
+        +getParkingSpots() List<ParkingSpot>
+    }
+
+    class FourWheelerManager {
+        +getParkingSpots() List<ParkingSpot>
+    }
+
+    class HeavyWheelerManager {
+        +getParkingSpots() List<ParkingSpot>
+    }
+
+    %% Builder Pattern
+    class TicketBuilder {
+        -String refNum
+        -Vehicle vehicle
+        -ParkingSpot parkingSpot
+        -LocalDateTime entryTime
+        -LocalDateTime exitTime
+        -double amount
+        -PaymentStatus paymentStatus
+        +refNum(String) TicketBuilder
+        +vehicle(Vehicle) TicketBuilder
+        +parkingSpot(ParkingSpot) TicketBuilder
+        +entryTime(LocalDateTime) TicketBuilder
+        +exitTime(LocalDateTime) TicketBuilder
+        +amount(double) TicketBuilder
+        +paymentStatus(PaymentStatus) TicketBuilder
+        +build() Ticket
+    }
+
+    %% Relationships
+    ParkingLot --> ParkingSpot : manages
+    ParkingLot --> VehicleTypeManagerFactory : uses
+    ParkingSpot --> ParkingSpotState : has
+    ParkingSpotState <|.. AvailableState : implements
+    ParkingSpotState <|.. OccupiedState : implements
+    ParkingSpotState <|.. ReservedState : implements
+    ParkingSpotState <|.. MaintenanceState : implements
+    VehicleTypeManagerFactory --> VehicleParkingManager : creates
+    VehicleParkingManager <|.. TwoWheelerManager : implements
+    VehicleParkingManager <|.. FourWheelerManager : implements
+    VehicleParkingManager <|.. HeavyWheelerManager : implements
+    Ticket --> TicketBuilder : created by
+    Ticket --> Vehicle : contains
+    Ticket --> ParkingSpot : references
+    Ticket --> PaymentStatus : has
+    Vehicle --> VehicleType : has
 ```
 
-*Color coding indicates different design patterns:*
-- *Pink: Strategy Pattern components*
-- *Blue: Factory Pattern components*
-- *Green: Single Responsibility Principle components*
-- *Red: Interface components*
+## Design Patterns Implementation
 
-## Design Patterns Used
+### 1. Singleton Pattern
+- **Implementation**: `ParkingLot`, `VehicleTypeManagerFactory`, `TicketGenerator`
+- **Purpose**: Ensure single instance of critical system components
+- **Thread Safety**: Double-checked locking with ReentrantLock
+- **Usage**:
+  ```java
+  // ParkingLot singleton
+  private static ParkingLot instance;
+  private static final ReentrantLock lock = new ReentrantLock();
+  
+  public static ParkingLot getInstance() {
+      if (instance == null) {
+          lock.lock();
+          try {
+              if (instance == null) {
+                  instance = new ParkingLot();
+              }
+          } finally {
+              lock.unlock();
+          }
+      }
+      return instance;
+  }
+  ```
 
-### 1. Strategy Pattern (Pink)
-- Used in parking spot selection strategy
-- Implemented through `ParkingSpotSelector` interface with concrete implementations:
-  - `NearestSelector`: Selects the nearest available parking spot
-  - `RandomSpotSelector`: Selects a random available parking spot
-- Also used in vehicle management through different vehicle type managers
-- Allows dynamic switching between different strategies
+### 2. State Pattern
+- **Implementation**: `ParkingSpot` with `ParkingSpotState` interface
+- **Purpose**: Manage parking spot states and their transitions
+- **States**: Available, Occupied, Reserved, Maintenance
+- **Usage**:
+  ```java
+  public class ParkingSpot {
+      private ParkingSpotState state;
+      
+      public void park() {
+          state = state.park();
+      }
+      
+      public void vacate() {
+          state = state.vacate();
+      }
+  }
+  ```
 
-### 2. Factory Pattern (Blue)
-- `VehicleTypeManagerFactory`: Creates appropriate vehicle parking managers based on vehicle type
-- `SpotSelectorFactory`: Creates appropriate spot selectors based on selection strategy
-- Encapsulates object creation logic and provides a clean interface for client code
+### 3. Factory Pattern
+- **Implementation**: `VehicleTypeManagerFactory`
+- **Purpose**: Create appropriate vehicle parking managers
+- **Usage**:
+  ```java
+  public VehicleParkingManager getVehicleParkingManager(VehicleType vehicleType) {
+      switch (vehicleType) {
+          case TWO_WHEELER:
+              return new TwoWheelerManager();
+          case FOUR_WHEELER:
+              return new FourWheelerManager();
+          case HEAVY_VEHICLE:
+              return new HeavyWheelerManager();
+      }
+  }
+  ```
 
-### 3. Interface Segregation (Red)
-- `VehicleParkingManager` interface defines specific methods for parking management
-- `PaymentProcessor` interface for payment processing
-- Separate interfaces for different responsibilities
+### 4. Builder Pattern
+- **Implementation**: `Ticket.TicketBuilder`
+- **Purpose**: Construct complex Ticket objects with validation
+- **Usage**:
+  ```java
+  public Ticket generateTicket(Vehicle vehicle, ParkingSpot parkingSpot) {
+      return new Ticket.TicketBuilder()
+              .refNum(generateUniqueTicketNum())
+              .vehicle(vehicle)
+              .parkingSpot(parkingSpot)
+              .entryTime(LocalDateTime.now())
+              .paymentStatus(PaymentStatus.PENDING)
+              .build();
+  }
+  ```
 
-### 4. Single Responsibility Principle (Green)
-- Each class has a single responsibility:
-  - `TicketGenerator`: Handles ticket generation
-  - `ParkingFeeProcessor`: Handles fee calculation and processing
-  - `ParkingSpotVacator`: Handles spot vacating logic
+## SOLID Principles Implementation
 
-## Key Components
+### 1. Single Responsibility Principle (SRP)
+- **ParkingSpot**: Manages only parking spot state and properties
+- **Ticket**: Handles only ticket-related information
+- **VehicleParkingManager**: Manages only vehicle-specific parking logic
+- **TicketGenerator**: Focuses solely on ticket generation
 
-### Data Models
-- `Vehicle`: Represents a vehicle with type and details
-- `ParkingSpot`: Represents a parking spot with location and availability
-- `Ticket`: Represents a parking ticket with vehicle and spot information
+### 2. Open/Closed Principle (OCP)
+- **Vehicle Types**: New vehicle types can be added without modifying existing code
+- **Parking States**: New states can be added by implementing ParkingSpotState
+- **Payment Methods**: New payment methods can be added without changing existing code
+- **Pricing Strategies**: New pricing strategies can be added without modifying existing code
 
-### Managers
-- `VehicleParkingManager`: Interface for vehicle-specific parking management
-- Concrete implementations for different vehicle types:
-  - `TwoWheelerManager`
-  - `FourWheelerManager`
-  - `HeavyWheelerManager`
+### 3. Liskov Substitution Principle (LSP)
+- **Vehicle Implementations**: All vehicle types can be used interchangeably
+- **ParkingSpotState**: All state implementations can be used interchangeably
+- **VehicleParkingManager**: All manager implementations can be used interchangeably
 
-### APIs
-- `FindParkingSpotAPI`: Handles parking spot finding
-- `GetTicketAPI`: Handles ticket generation
-- `PayParkingFeesAPI`: Handles payment processing
-- `VacateParkingSpotAPI`: Handles spot vacating
+### 4. Interface Segregation Principle (ISP)
+- **Vehicle Interface**: Contains only vehicle-specific methods
+- **ParkingSpotState Interface**: Contains only state-related methods
+- **VehicleParkingManager Interface**: Contains only parking management methods
 
-### Payment Processing
-- Supports multiple payment modes (Cash/Card)
-- Flexible payment processing through `PaymentProcessor` interface
+### 5. Dependency Inversion Principle (DIP)
+- **ParkingLot**: Depends on VehicleParkingManager interface, not concrete implementations
+- **ParkingSpot**: Depends on ParkingSpotState interface, not concrete states
+- **TicketGenerator**: Depends on Ticket interface, not concrete implementation
 
-## Features
-1. Support for multiple vehicle types
-2. Different parking spot selection strategies
-3. Flexible payment processing
-4. Ticket-based parking management
-5. Floor-based parking organization
-6. Entry/exit point management
+## Additional Design Notes
 
-## Usage
-The system provides APIs for:
-1. Finding available parking spots
-2. Generating parking tickets
-3. Processing parking fees
-4. Vacating parking spots
+### 1. Thread Safety
+- Singleton implementations use double-checked locking
+- ReentrantLock for ParkingLot instance
+- Synchronized block for VehicleTypeManagerFactory
 
-Each API is designed to be extensible and maintainable, following SOLID principles and design patterns. 
+### 2. Error Handling
+- Validation in TicketBuilder
+- IllegalStateException for missing required fields
+- IllegalArgumentException for unsupported vehicle types
+
+### 3. Extensibility Points
+- New vehicle types can be added
+- New parking spot states can be added
+- New payment methods can be added
+- New pricing strategies can be added
+
+### 4. Testing Considerations
+- Interfaces allow for easy mocking
+- State pattern enables state transition testing
+- Builder pattern simplifies test object creation
+- Factory pattern allows for test-specific implementations
+
+### 5. Future Enhancements
+- Add payment processing system
+- Implement pricing strategies
+- Add reservation system
+- Add user authentication
+- Add reporting system
+- Add notification system
+
+## Low-Level Design Preparation Notes
+
+1. **Class Design**
+   - Clear separation of concerns
+   - Proper encapsulation
+   - Immutable objects where appropriate
+   - Thread-safe implementations
+
+2. **Interface Design**
+   - Small, focused interfaces
+   - Clear contract definitions
+   - Proper abstraction levels
+
+3. **Error Handling**
+   - Proper exception hierarchy
+   - Meaningful error messages
+   - Graceful error recovery
+
+4. **Testing Strategy**
+   - Unit test coverage
+   - Integration test scenarios
+   - Performance test cases
+   - Edge case handling
+
+5. **Documentation**
+   - Clear class responsibilities
+   - Method documentation
+   - Design pattern usage
+   - Extension points
+
+6. **Code Quality**
+   - Consistent naming conventions
+   - Proper code organization
+   - Clean code principles
+   - SOLID principles adherence 
